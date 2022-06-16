@@ -6,7 +6,7 @@
 ## Bachelor Semester Project - École Polytechnique Fédérale de Lausanne (EPFL), Computer and Communication Sciences
 
 The goal of this project is to study the state of the art in DNA storage and coding, and develop a transcoding module that encodes the quantized DCT coefficients of an already compressed JPEG file with DNA nucleotides, which in turn is then integrated with a DNA sequencing, storage and synthesis simulator. 
-This repository contains the transcoding module which has been built by modifying the software used to encode DNA images - JPEG DNA - developed by the Mediacoding group in the I3S laboratory, in agreement with the standards described by the Jpeg DNA research group in their public document - *DNA-based Media Storage - State-of-the-Art, Challenges, Use Cases and Requirements*. The original software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python)
+This repository contains the transcoding module which has been built by modifying the software used to encode DNA images - JPEG DNA - developed by the Mediacoding group in the I3S laboratory, in agreement with the standards described by the Jpeg DNA research group in their public document - *DNA-based Media Storage - State-of-the-Art, Challenges, Use Cases and Requirements*. The original software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python).
 
 ## Installation
 First we set up the JPEG_DNA_Transcoder repository:

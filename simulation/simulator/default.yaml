@@ -1,0 +1,3 @@
+defaults:
+    - connection : non_secure_local
+    - post : default

@@ -1,0 +1,86 @@
+version: 2.1
+orbs:
+  codecov: codecov/codecov@3.0.0
+
+jobs:
+  build-3-7:
+    docker:
+      - image: cimg/python:3.7
+    steps:
+      - checkout
+      - run:
+          name: Library installer
+          command: python -m pip install build
+      - run:
+          name: Install library
+          command: python -m build
+  build-3-8:
+    docker:
+      - image: cimg/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Library installer
+          command: python -m pip install build
+      - run:
+          name: Install library
+          command: python -m build
+  build-3-9:
+    docker:
+      - image: cimg/python:3.9.6
+    steps:
+      - checkout
+      - run:
+          name: Library installer
+          command: python -m pip install build
+      - run:
+          name: Install library
+          command: python -m build
+  test-3-7:
+    docker:
+      - image: cimg/python:3.7
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Run tests and collect coverage
+          command: |
+            python -m nose -v --exe test
+  test-3-8:
+    docker:
+      - image: cimg/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Run tests and collect coverage
+          command: |
+            python -m nose -v --exe test
+  test-3-9-codecov:
+    docker:
+      - image: cimg/python:3.9.6
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Run tests and collect coverage
+          command: |
+            python -m nose -v --exe --with-coverage --cover-xml test
+      - codecov/upload
+
+workflows:
+  version: 2.1
+  build-test:
+    jobs:
+      - build-3-7
+      - build-3-8
+      - build-3-9
+      - test-3-7
+      - test-3-8
+      - test-3-9-codecov

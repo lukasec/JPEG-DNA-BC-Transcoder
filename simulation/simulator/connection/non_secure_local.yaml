@@ -1,0 +1,4 @@
+host: 'host'
+port: 'port'
+secure: False
+n_workers: 1  #Choice between an integer or all

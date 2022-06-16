@@ -1,0 +1,245 @@
+sequence: ""
+key: your_api_key
+enabledUndesiredSeqs: []
+kmer_windowsize: "10"
+gc_windowsize: "50"
+use_error_probs: false
+acgt_only: true
+random_seed: ""
+do_max_expect: true
+temperature: "310.15"
+send_mail: false
+email: ""
+asHTML: false
+gc_name: Default Graph
+gc_error_prob:
+  data:
+    - x: 0
+      "y": 100
+    - x: 30
+      "y": 100
+    - x: 40
+      "y": 0
+    - x: 60.17
+      "y": 0
+    - x: 70
+      "y": 100
+    - x: 100
+      "y": 100
+  interpolation: true
+  maxX: 100
+  maxY: 100
+  xRound: 2
+  yRound: 2
+  label: Error Probability
+  xLabel: GC-Percentage
+homopolymer_error_prob:
+  data:
+    - x: 0
+      "y": 0
+    - x: 2
+      "y": 0
+    - x: 4
+      "y": 0
+    - x: 5
+      "y": 0
+    - x: 6
+      "y": 0
+    - x: 7
+      "y": 0
+    - x: 8
+      "y": 100
+    - x: 20
+      "y": 100
+  interpolation: true
+  label: Error Probability
+  maxX: 20
+  maxY: 100
+  xLabel: Homopolymer length
+  xRound: 0
+  yRound: 2
+homopolymer_name: 0-to-7
+kmer_error_prob:
+  data:
+    - x: 0
+      "y": 0
+    - x: 6
+      "y": 0.15
+    - x: 12
+      "y": 0.85
+    - x: 22
+      "y": 4.73
+    - x: 40
+      "y": 18.2
+    - x: 60
+      "y": 40.7
+    - x: 79
+      "y": 67.36
+    - x: 100
+      "y": 100
+  interpolation: true
+  maxX: 20
+  maxY: 100
+  xRound: 0
+  yRound: 2
+  label: Error Probability
+  xLabel: Kmer repeats
+kmer_name: Default Graph
+err_simulation_order:
+  Sequencing:
+    - name: 2D
+      id: "40"
+      cycles: 1
+      conf:
+        err_data:
+          deletion: 0.36
+          insertion: 0.23
+          mismatch: 0.41
+          raw_rate: 0.13
+        err_attributes:
+          deletion:
+            pattern:
+              A: 0.15
+              C: 0.35
+              G: 0.35
+              T: 0.15
+            position:
+              random: 1
+          insertion:
+            pattern:
+              A: 0.15
+              C: 0.35
+              G: 0.35
+              T: 0.15
+            position:
+              random: 1
+          mismatch:
+            pattern:
+              A:
+                C: 0.25
+                G: 0.5
+                T: 0.25
+              C:
+                A: 0.25
+                G: 0.5
+                T: 0.25
+              G:
+                A: 0.25
+                C: 0.25
+                T: 0.5
+              T:
+                A: 0.25
+                C: 0.25
+                G: 0.5
+        type: sequencing
+  Synthesis:
+    - name: ErrASE
+      id: "3"
+      cycles: 1
+      conf:
+        err_data:
+          deletion: 0.6
+          insertion: 0.2
+          mismatch: 0.2
+          raw_rate: 0.000025
+        err_attributes:
+          deletion:
+            pattern:
+              A: 0.4
+              C: 0.2
+              G: 0.2
+              T: 0.2
+            position:
+              homopolymer: 0
+              random: 1
+          insertion:
+            pattern:
+              A: 0.25
+              C: 0.25
+              G: 0.25
+              T: 0.25
+            position:
+              homopolymer: 0
+              random: 1
+          mismatch:
+            pattern: {}
+        type: synthesis
+  Storage/PCR:
+    - name: E coli
+      id: "4"
+      cycles: "1"
+      conf:
+        err_data:
+          deletion: 0.08
+          insertion: 0.08
+          mismatch: 0.84
+          raw_rate: 3.17e-7
+        err_attributes:
+          deletion:
+            pattern:
+              A: 0.25
+              C: 0.25
+              G: 0.25
+              T: 0.25
+            position:
+              homopolymer: 0
+              random: 1
+          insertion:
+            pattern:
+              A: 0.25
+              C: 0.25
+              G: 0.25
+              T: 0.25
+            position:
+              homopolymer: 0
+              random: 1
+          mismatch:
+            pattern: {}
+        type: storage
+    - name: Taq
+      id: "2"
+      cycles: "30"
+      conf:
+        err_data:
+          deletion: 0.01
+          insertion: 0
+          mismatch: 0.99
+          raw_rate: 0.000043
+        err_attributes:
+          deletion:
+            pattern:
+              A: 0.25
+              C: 0.25
+              G: 0.25
+              T: 0.25
+            position:
+              homopolymer: 0
+              random: 1
+          insertion:
+            pattern:
+              A: 0.25
+              C: 0.25
+              G: 0.25
+              T: 0.25
+            position:
+              homopolymer: 0
+              random: 1
+          mismatch:
+            pattern:
+              A:
+                C: 0.02
+                G: 0.97
+                T: 0.01
+              C:
+                A: 0
+                G: 0
+                T: 1
+              G:
+                A: 1
+                C: 0
+                T: 0
+              T:
+                A: 0.01
+                C: 0.97
+                G: 0.02
+        type: pcr

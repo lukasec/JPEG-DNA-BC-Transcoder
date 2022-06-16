@@ -1,0 +1,11 @@
+setuptools
+pip
+numpy
+scipy
+scikit-image
+argparse
+configparser
+opencv-python
+pandas
+nose
+coverage

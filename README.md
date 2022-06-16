@@ -20,7 +20,7 @@ To use the commands from the terminal install the following package at the root 
 ```
 python setup.py install
 ```
-To set up the Python wrapper for the *ibjpeg* C library:
+#### Then we set up the Python wrapper for the *ibjpeg* C library:
 ```
 brew install libjpeg
 ```

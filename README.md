@@ -6,7 +6,7 @@
 ## Bachelor Semester Project - École Polytechnique Fédérale de Lausanne, Computer and Communication Sciences
 
 The goal of this project is to study the state of the art in DNA storage and coding, and develop a transcoding module that encodes the quantized DCT coefficients of an already compressed JPEG file with DNA nucleotides, which in turn is then integrated with a DNA sequencing, storage and synthesis simulator. 
-This repository contains the transcoding module which has been built by modifying the software used to encode DNA images - JPEG DNA - developed by the Mediacoding group in the I3S laboratory, in agreement with the standards described by the Jpeg DNA research group in - *DNA-based Media Storage - State-of-the-Art, Challenges, Use Cases and Requirements*. The original software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python). 
+This repository contains the transcoding module which has been built by modifying the software used to encode DNA images - JPEG DNA - developed by the Mediacoding group in the I3S laboratory, in agreement with the standards described by the Jpeg DNA research group in - *DNA-based Media Storage - State-of-the-Art, Challenges, Use Cases and Requirements*. 
 
 ## Installation
 To install the required packages and set up the transcoder you need to have *pip* and *homebrew* installed.
@@ -21,7 +21,6 @@ To use the commands from the terminal install the following package at the root 
 python setup.py install
 ```
 #### Then we set up the Python wrapper for the *ibjpeg* C library:
-The wrapper was adapted from [dct-coefficient-decoder](https://github.com/btlorch/dct-coefficient-decoder)
 ```
 brew install libjpeg
 ```
@@ -61,4 +60,7 @@ To decode a DNA sequence back to a JPEG file you will have to specify first the 
  ```
  python -m jpegdna.scripts.jpegdnargb_decode \$SUBSAMPLING \$QUANTIZATION_TABLES_PATH.npz
  \$DNA_IN_PATH \$IMG_OUT_PATH.png no_format
-  ```
+```
+### Credit:
+The original JPEG DNA software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python). 
+The adapted python wrapper can be found on [dct-coefficient-decoder](https://github.com/btlorch/dct-coefficient-decoder)

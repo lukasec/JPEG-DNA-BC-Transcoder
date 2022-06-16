@@ -1,5 +1,5 @@
 <p float="left">
-<img src="./img/logos/logos.png">
+<img src="./img/logos/logos.png" width="200">
 </p>
 
 # JPEG Transcoding for DNA based storage 

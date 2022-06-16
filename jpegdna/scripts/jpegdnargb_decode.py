@@ -82,10 +82,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('SubSamp',
                         type=str,
-                        help='Subsampling mode')
+                        help='Type of Chroma Subsampling')
     parser.add_argument('QTFPATH',
                         type=str,
-                        help='Pass quantization tables')
+                        help='Pass quantization tables path')
     parser.add_argument('DATAFPATH',
                         type=str,
                         help='Input file for the quaternary payload')
@@ -103,7 +103,7 @@ def main():
     args = parser.parse_args()
 
     channel_sampler = args.SubSamp
-    QT_path = args.QTFPATH # New path
+    QT_path = args.QTFPATH
     datafpath = args.DATAFPATH
     imgoutpath = args.IMGOUTPATH
     formatting = (args.formatting_command != "no_format")

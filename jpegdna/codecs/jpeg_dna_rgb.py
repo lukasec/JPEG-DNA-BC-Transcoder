@@ -133,7 +133,7 @@ class JPEGDNARGB(JPEGDNAGray):
         if self.alpha < min_alpha:
             raise ValueError(f"Invalid alpha value, minimal possible value for this image: {min_alpha}")
         #Computing frequencies
-        Y, Cb, Cr = YCbCr # Ignore
+        Y, Cb, Cr = YCbCr # Ignore, kept to avoid errors with the original code
 
         # Transcoder: Init. coefficient decoder
         dec = PyCoefficientDecoder(self.path)

@@ -281,7 +281,7 @@ class JPEGDNAGray(AbstractCoder):
             dc_prev_coeff = 0
             for j in range(nb_col_blocks):
 
-                # Read quantized DCT coefficients
+                # Read quantized DCT coefficients, and reshape them into 8x8 blocks
                 coeff = DCT_coeffs[idx,:].reshape((8,8))
                 idx = idx + 1
 

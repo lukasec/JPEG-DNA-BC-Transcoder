@@ -119,6 +119,7 @@ def main():
     datafpath = args.DATAFPATH
     qtpath = args.QT_path
 
+    # We read the sampling factors and pattern match to extract the type of Chroma subsampling
     d = PyCoefficientDecoder(img_fpath) 
     sampling_factors = (d.h_samp_factor(0), d.v_samp_factor(0), d.h_samp_factor(1), d.v_samp_factor(1), d.h_samp_factor(2), d.v_samp_factor(2))
     if  sampling_factors == (1,1,1,1,1,1):

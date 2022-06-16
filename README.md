@@ -54,6 +54,7 @@ To encode a JPEG file into DNA nucleotides you will have to specifiy the path of
  python -m jpegdna.scripts.jpegdnargb_encode \$IMG_PATH.jpg \$DNA_OUT_PATH
  \$QUANTIZATION_TABLES_OUT_PATH.npz
  ```
+ Please note that the terminal will print the type of Chroma Subsampling of the JPEG file. You will have to remember this when decoding the DNA sequence.
  
  ### Decoding
 To decode a DNA sequence back to a JPEG file you will have to specify first the type of Chroma Subsampling of the original JPEG image (simply copy the ouput of the encoder), the path of the quantization tables, the path of the DNA sequence, and finally the path on which you would like to store the output decoded PNG file.

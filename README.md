@@ -62,5 +62,5 @@ To decode a DNA sequence back to a JPEG file you will have to specify first the 
  \$DNA_IN_PATH \$IMG_OUT_PATH.png no_format
 ```
 ### Credit:
-The original JPEG DNA software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python). 
-The adapted python wrapper can be found on [dct-coefficient-decoder](https://github.com/btlorch/dct-coefficient-decoder)
+The original JPEG DNA software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python). <br>
+The adapted python wrapper can be found on [dct-coefficient-decoder](https://github.com/btlorch/dct-coefficient-decoder).

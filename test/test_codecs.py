@@ -73,7 +73,7 @@ def jpegdnagray_test():
     img = np.random.randint(0, 255, size=(65, 65))
     codec = JPEGDNAGray(0.1, verbose=True, verbosity=5)
     (code, res) = codec.full_encode(img, "from_img")
-    decoded = codec.full_decode(code, "from_img", res[1], res[2], res[3], res[4])
+    decoded = codec.full_decode(code, "from_img", res[1], res[2], res[3], res[4], res[5])
     squares = ((img-decoded))**2
     mse = 0
     for i in range(len(squares)):
@@ -87,7 +87,7 @@ def jpegdnagray_test():
     img = np.random.randint(0, 255, size=(65, 65))
     codec = JPEGDNAGray(0.1, verbose=True, verbosity=5)
     (code, res) = codec.full_encode(img, "default")
-    decoded = codec.full_decode(code, "default", res[1], res[2])
+    decoded = codec.full_decode(code, "default", res[1], res[2], res[5])
     squares = ((img-decoded))**2
     mse = 0
     for i in range(len(squares)):
@@ -131,11 +131,11 @@ def jpegdnargb_test():
     """Functionnal tests for the general rgb jpegdna codec"""
     img = io.imread("img/kodim01.png")[:64, :64]
     codec = JPEGDNARGB(0.1, verbose=True, verbosity=8)
-    (code, res) = codec.full_encode(img, "from_img")
+    (code, res, gammas) = codec.full_encode(img, "from_img")
     params = (res[0][1:],
               res[1][1:],
               res[2][1:])
-    decoded = codec.full_decode(code, "from_img", params)
+    decoded = codec.full_decode(code, "from_img", params, gammas)
     color_conv = RGBYCbCr()
     img_ycbcr = color_conv.forward(img)
     decoded_ycbcr = color_conv.forward(decoded)
@@ -153,11 +153,11 @@ def jpegdnargb_test():
     assert mse <= mse_threshold
     img = io.imread("img/kodim01.png")[:64, :64]
     codec = JPEGDNARGB(0.1, verbose=True, verbosity=8)
-    (code, res) = codec.full_encode(img, "default")
+    (code, res, gammas) = codec.full_encode(img, "default")
     params = (res[0][1:3],
               res[1][1:3],
               res[2][1:3])
-    decoded = codec.full_decode(code, "default", params)
+    decoded = codec.full_decode(code, "default", params, gammas)
     color_conv = RGBYCbCr()
     img_ycbcr = color_conv.forward(img)
     decoded_ycbcr = color_conv.forward(decoded)
@@ -213,9 +213,9 @@ def jpegdnargb_test():
     assert mse <= mse_threshold
     img = io.imread("img/kodim01.png")[:24, :24]
     codec = JPEGDNARGB(0.1, verbose=True, verbosity=8)
-    (code, res) = codec.full_encode(img, "from_img")
+    (code, res, gammas) = codec.full_encode(img, "from_img")
     params = (res[0][1:],
               res[1][1:],
               res[2][1:])
     code = code[25:]
-    decoded = codec.full_decode(code, "from_img", params)
+    decoded = codec.full_decode(code, "from_img", params, gammas)

@@ -2,15 +2,15 @@
 
 import warnings
 import math
-from jpegdna.format import AbstractFormatter, GeneralInfoFormatter, GrayFrequenciesFormatter, RGBFrequenciesFormatter, DataFormatter
+from jpegdna.format import AbstractFormatter, GeneralInfoFormatter, GrayFrequenciesFormatter, RGBFrequenciesFormatter, QuantizationTablesInfoFormatter, DataFormatter
 from jpegdna.tools.strand_tools import compute_length
 
 
 class JpegDNAFormatter(AbstractFormatter):
     """Jpeg DNA gray level formatter class
 
-    :param aplha: Alpha value (quantization step multiplier)
-    :type alpha: float
+    :param quantization_tables: Quantization tables
+    :type quantization: list(np.array)
     :param freq_origin: Choose between default and adapted frequencies
     :type freq_origin: str
     :param primer: Primer name used
@@ -26,6 +26,7 @@ class JpegDNAFormatter(AbstractFormatter):
     DEFAULT_OFFSET_SIZE = 8
     DEFAULT_GENERAL_INFO_HEADER = "AATAATA"
     DEFAULT_FREQS_INFO_HEADER = "ATCCGTC"
+    DEFAULT_QUANTIZATION_INFO_HEADER = "GGTGTTC"
     DEFAULT_DATA_INFO_HEADER = "TTGAGGA"
     DEFAULT_DC_FREQ_HEADER = "ATTC"
     DEFAULT_AC_FREQ_HEADER = "AGAG"
@@ -37,12 +38,12 @@ class JpegDNAFormatter(AbstractFormatter):
         None : (0, 0),
         "illumina" : (26, 21)
     }
-    def __init__(self, alpha, image_type, sampler="4:2:2", freq_origin=None, primer=None, oligo_length=200, debug=False):
+    def __init__(self, quantization_tables, image_type, sampler="4:2:2", freq_origin=None, primer=None, oligo_length=200, debug=False):
         self.debug = debug
         self.primer = None
         self.primer_type = primer
         self.set_primer()
-        self.alpha = alpha
+        self.quantization_tables = quantization_tables # TODO pass to quantization
         self.freq_dc, self.freq_ac, self.m, self.n = None, None, None, None
         self.oligo_length = oligo_length
 
@@ -50,17 +51,20 @@ class JpegDNAFormatter(AbstractFormatter):
             self.general_info_header = "\033[33m" + self.DEFAULT_GENERAL_INFO_HEADER + "\033[0m"
             self.freqs_info_header = "\033[33m" + self.DEFAULT_FREQS_INFO_HEADER + "\033[0m"
             self.data_info_header = "\033[33m" + self.DEFAULT_DATA_INFO_HEADER + "\033[0m"
+            self.quantization_info_header = "\033[33m" + self.DEFAULT_QUANTIZATION_INFO_HEADER + "\033[0m"
             self.dc_freq_header = "\033[32m" + self.DEFAULT_DC_FREQ_HEADER + "\033[36m"
             self.ac_freq_header = "\033[32m" + self.DEFAULT_AC_FREQ_HEADER + "\033[36m"
         else:
             self.general_info_header = self.DEFAULT_GENERAL_INFO_HEADER
             self.freqs_info_header = self.DEFAULT_FREQS_INFO_HEADER
             self.data_info_header = self.DEFAULT_DATA_INFO_HEADER
+            self.quantization_info_header = self.DEFAULT_QUANTIZATION_INFO_HEADER
             self.dc_freq_header = self.DEFAULT_DC_FREQ_HEADER
             self.ac_freq_header = self.DEFAULT_AC_FREQ_HEADER
 
         self.general_info_header_len = len(self.DEFAULT_GENERAL_INFO_HEADER)
         self.freqs_info_header_len = len(self.DEFAULT_FREQS_INFO_HEADER)
+        self.quantization_info_header_len = len(self.DEFAULT_QUANTIZATION_INFO_HEADER)
         self.data_info_header_len = len(self.DEFAULT_DATA_INFO_HEADER)
         self.freq_type_header_len = len(self.DEFAULT_AC_FREQ_HEADER)
 
@@ -86,8 +90,7 @@ class JpegDNAFormatter(AbstractFormatter):
         self.centering_offset = self.DEFAULT_CENTERING_OFFSET
         self.image_type = image_type
         self.sampler = sampler
-        self.general_info_formatter = GeneralInfoFormatter(self.alpha,
-                                                           self.freq_origin,
+        self.general_info_formatter = GeneralInfoFormatter(self.freq_origin,
                                                            self.m,
                                                            self.n,
                                                            self.blockdims,
@@ -142,6 +145,16 @@ class JpegDNAFormatter(AbstractFormatter):
                                                                debug=debug)
         else:
             self.frequency_formatter = None
+        self.quantization_tables_formatter = QuantizationTablesInfoFormatter(self.blockdims,
+                                                                             self.image_type,
+                                                                             self.DEFAULT_QUANTIZATION_INFO_HEADER,
+                                                                             oligo_length=(self.oligo_length -
+                                                                                           self.primer_length -
+                                                                                           self.quantization_info_header_len -
+                                                                                           self.image_id_len -
+                                                                                           self.parity_len -
+                                                                                           self.sense_len),
+                                                                             debug=debug)
         self.data_formatter = DataFormatter(self.DEFAULT_DATA_INFO_HEADER,
                                             self.DEFAULT_OFFSET_SIZE,
                                             oligo_length=(self.oligo_length -
@@ -163,11 +176,6 @@ class JpegDNAFormatter(AbstractFormatter):
                 self.primer = self.PRIMERS[self.primer_type]
         except:
             raise ValueError("Non-existing primer")
-
-    def set_alpha(self, alpha):
-        """Set alpha value"""
-        self.alpha = alpha
-        self.general_info_formatter.alpha = alpha
 
     def set_freq_origin(self, choice):
         """Set frequency origin"""
@@ -279,7 +287,7 @@ class JpegDNAFormatter(AbstractFormatter):
 
     def get_state(self, case=None):
         if case == "deformat":
-            return self.alpha, self.m, self.n, self.freq_dc, self.freq_ac
+            return self.quantization_tables, self.m, self.n, self.freq_dc, self.freq_ac
         else:
             raise ValueError
 
@@ -299,6 +307,7 @@ class JpegDNAFormatter(AbstractFormatter):
     def format(self, inp):
         oligos = ([self.general_info_formatter.format(None)] +
                   self.frequency_formatter.format((self.freq_dc, self.freq_ac)) +
+                  self.quantization_tables_formatter.format(self.quantization_tables) +
                   self.data_formatter.format(inp))
         if self.debug:
             for oligo in oligos:
@@ -316,7 +325,7 @@ class JpegDNAFormatter(AbstractFormatter):
             for oligo in oligos_cleanup:
                 print(oligo)
         payload_strands = self.get_payload(oligos_cleanup)
-        general_info_strand, freq_strands, data_strands = None, [], []
+        general_info_strand, freq_strands, tables_strands, data_strands = None, [], [], []
         for strand in payload_strands:
             header = strand[:7]
             substrand = strand[7:]
@@ -326,6 +335,8 @@ class JpegDNAFormatter(AbstractFormatter):
                     general_info_strand = substrand
                 elif "\033[33m" + header + "\033[0m" == self.freqs_info_header:
                     freq_strands.append(substrand)
+                elif "\033[33m" + header + "\033[0m" == self.quantization_info_header:
+                    tables_strands.append(substrand)
                 elif "\033[33m" + header + "\033[0m" == self.data_info_header:
                     data_strands.append(substrand)
                 else:
@@ -335,6 +346,8 @@ class JpegDNAFormatter(AbstractFormatter):
                     general_info_strand = substrand
                 elif header == self.freqs_info_header:
                     freq_strands.append(substrand)
+                elif header == self.quantization_info_header:
+                    tables_strands.append(substrand)
                 elif header == self.data_info_header:
                     data_strands.append(substrand)
                 else:
@@ -379,12 +392,20 @@ class JpegDNAFormatter(AbstractFormatter):
                                                                              self.freq_type_header_len),
                                                                debug=self.debug)
         self.freq_origin = self.general_info_formatter.freq_origin
-        self.alpha = self.general_info_formatter.alpha
         self.blockdims = self.general_info_formatter.blockdims
         self.m, self.n = self.general_info_formatter.m, self.general_info_formatter.n
         self.offset_size = self.general_info_formatter.offset_size
         self.data_formatter.offset_size = self.offset_size
-
+        self.quantization_tables_formatter = QuantizationTablesInfoFormatter(self.blockdims,
+                                                                             self.image_type,
+                                                                             self.DEFAULT_QUANTIZATION_INFO_HEADER,
+                                                                             oligo_length=(self.oligo_length -
+                                                                                           self.primer_length -
+                                                                                           self.quantization_info_header_len -
+                                                                                           self.image_id_len -
+                                                                                           self.parity_len -
+                                                                                           self.sense_len),
+                                                                             debug=self.debug)
         # Frequencies
         if self.freq_origin == "from_img":
             self.max_cat = self.general_info_formatter.max_cat
@@ -403,6 +424,9 @@ class JpegDNAFormatter(AbstractFormatter):
         elif self.DEFAULT_MAX_CAT == 33 and self.DEFAULT_MAX_RUNCAT == 162*3:
             self.freq_ac = (None, None, None)
             self.freq_dc = (None, None, None)
+
+        # Quantization tables
+        self.quantization_tables = self.quantization_tables_formatter.deformat(tables_strands)
 
         # Data strand
         data_strand = self.data_formatter.deformat(data_strands)

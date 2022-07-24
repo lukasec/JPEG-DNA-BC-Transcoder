@@ -8,10 +8,13 @@ import configparser
 from skimage import io
 import jpegdna
 from jpegdna.codecs import JPEGDNARGB
+
+# Imports for transcoder
 import pyximport
 pyximport.install()
 from decoder import PyCoefficientDecoder 
 import numpy as np
+
 
 def stats(func):
     """Stats printing and exception handling decorator"""
@@ -21,7 +24,7 @@ def stats(func):
             if args[2]:
                 oligos = func(*args)
             else:
-                code, res = func(*args)
+                code, res, gammas = func(*args)
         except ValueError as err:
             print(err)
         else:
@@ -44,14 +47,25 @@ def stats(func):
 
                 img_info = {"Y": img_info_y, "Cb": img_info_cb, "Cr": img_info_cr}
                 freq_info = {"Y": freq_info_y, "Cb": freq_info_cb, "Cr": freq_info_cr}
+                gammas_info = {"gammas": gammas}
             if args[2]:
-                with open(args[4], 'wb') as f:
-                    pickle.dump(oligos, f)
+                if args[10] in ["pickle", "pkl"]:
+                    with open(args[4], 'wb') as f:
+                        pickle.dump(oligos, f)
+                elif args[10] in ["fasta", "fas"]:
+                    fasta_file = open(args[4], "w+", encoding='utf-8')
+                    out = '\n'.join(['>Oligo' + str(i) + "\n" + el for i, el in enumerate(oligos)])
+                    fasta_file.write(out)
+                    fasta_file.close()
+                else:
+                    raise ValueError("Unknown extension")
             else:
                 with open(args[4], 'w', encoding="UTF-8") as f:
                     f.write(code)
                 with open(args[6], "wb") as f:
                     pickle.dump(img_info, f)
+                with open(args[7], "wb") as f:
+                    pickle.dump(gammas_info, f)
                 if not args[3]:
                     with open(args[5], "wb") as f:
                         pickle.dump(freq_info, f)
@@ -59,30 +73,29 @@ def stats(func):
 
 # pylint: disable=unused-argument
 @stats
-def encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level, img_fpath, qtpath, channel_sampler):
+def encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, gammasfpath, verbosity, verbosity_level, img_fpath, channel_sampler, extension):
     """Function for encoding"""
 
-    codec = JPEGDNARGB(alpha, img_fpath, True, qtpath, channel_sampler, formatting=formatting, verbose=verbosity, verbosity=verbosity_level)
+    # Pass the img_fpath, and type of subsampling as an argument as well
+    codec = JPEGDNARGB(alpha, img_fpath, channel_sampler, True, mformatting=formatting, verbose=verbosity, verbosity=verbosity_level)
     if formatting:
         if defaultfreq:
-            # Pass the img_fpath as an argument as well
-            oligos = codec.full_encode(img,"default")
+            oligos = codec.full_encode(img, "default")
         else:
             oligos = codec.full_encode(img, "from_img")
         return oligos
     elif defaultfreq:
-        (code, res) = codec.full_encode(img, "default")
+        (code, res, gammas) = codec.full_encode(img, "default")
     else:
-        (code, res) = codec.full_encode(img, "from_img")
-    return code, res
+        (code, res, gammas) = codec.full_encode(img, "from_img")
+    return code, res, gammas
 # pylint: enable=unused-argument
 
-def encode(alpha, formatting, defaultfreq, qtpath, channel_sampler, img_fpath, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level):
+def encode(alpha, formatting, defaultfreq, channel_sampler, img_fpath, datafpath, freqoutfpath, infofpath, gammasfpath, verbosity, verbosity_level, extension):
     """Full image encoder with stats and exception handling"""
 
     img = io.imread(img_fpath)
-    # Pass also the img_fpath as an argument
-    return encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level, img_fpath, qtpath, channel_sampler)
+    return encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, gammasfpath, verbosity, verbosity_level, img_fpath, channel_sampler, extension)
 
 # pylint: disable=missing-function-docstring
 def main():
@@ -91,6 +104,7 @@ def main():
         config.read_file(cfg)
     verbosity = bool(config['VERB']['enabled'])
     verbosity_level = int(config['VERB']['level'])
+    extension = config['IO_DIR']['ext']
 
     parser = argparse.ArgumentParser()
     parser.add_argument('IMG_FPATH',
@@ -99,13 +113,6 @@ def main():
     parser.add_argument('DATAFPATH',
                         type=str,
                         help='Output file for the quaternary payload')
-    parser.add_argument('QT_path',
-                        type=str,
-                        help='Output file for the quantization tables')
-    #parser.add_argument('SubSamp',
-                        #type=str,
-                        #help='Subsampling mode')
-    #alpha_removed
     #parser.add_argument('ALPHA',
                         #type=float,
                         #help='Dynamic')
@@ -117,7 +124,9 @@ def main():
 
     img_fpath = args.IMG_FPATH
     datafpath = args.DATAFPATH
-    qtpath = args.QT_path
+    #alpha = args.ALPHA
+    formatting = args.enable_formatting
+    defaultfreq = args.default_frequencies
 
     # We read the sampling factors and pattern match to extract the type of Chroma subsampling
     d = PyCoefficientDecoder(img_fpath) 
@@ -134,21 +143,21 @@ def main():
         channel_sampler = '4:1:1'
     if  sampling_factors == (4,2,1,1,1,1):
         channel_sampler = '4:1:1'
-    #alpha = args.ALPHA
-    formatting = args.enable_formatting
-    defaultfreq = args.default_frequencies
+
     if not formatting:
         io_dir = config['IO_DIR']["dir"]
         if not os.path.exists(io_dir):
-            os.mkdir(io_dir)
+            os.makedirs(io_dir)
         infofpath = io_dir + config['IO_ENCODE']["info_out_path"]
+        gammasfpath = io_dir + config['IO_ENCODE']["gammas_out_path"]
     else:
         infofpath = None
+        gammasfpath = None
     if defaultfreq or formatting:
         freqoutfpath = None
     else:
         freqoutfpath = io_dir + config['IO_ENCODE']["freqs_out_path"]
-    encode(1, formatting, defaultfreq, qtpath, channel_sampler, img_fpath, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level)
+    encode(1, formatting, defaultfreq, channel_sampler, img_fpath, datafpath, freqoutfpath, infofpath, gammasfpath, verbosity, verbosity_level, extension)
     print(f'Please remember for decoding: Subsampling mode is {channel_sampler}')
 # pylint: enable=missing-function-docstring
 

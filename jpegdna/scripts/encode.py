@@ -31,21 +31,29 @@ def stats(func):
     return inner
 
 @stats
-def encode_image(img, alpha, filename, defaultfreq, datafpath, verbosity, verbosity_level):
+def encode_image(img, alpha, defaultfreq, datafpath, verbosity, verbosity_level, extension):
     """Encode an image"""
-    codec = JpegDNA(alpha, filename, verbose=verbosity, verbosity=verbosity_level)
+    codec = JpegDNA(alpha, verbose=verbosity, verbosity=verbosity_level)
     if defaultfreq:
         oligos = codec.encode(img, "default")
     else:
         oligos = codec.encode(img, "from_img")
-    with open(datafpath, 'wb') as f:
-        pickle.dump(oligos, f)
+    if extension in ["pickle", "pkl"]:
+        with open(datafpath, 'wb') as f:
+            pickle.dump(oligos, f)
+    elif extension in ["fasta", "fas"]:
+        fasta_file = open(datafpath, "w+", encoding='utf-8')
+        out = '\n'.join(['>Oligo' + str(i) + "\n" + el for i, el in enumerate(oligos)])
+        fasta_file.write(out)
+        fasta_file.close()
+    else:
+        raise ValueError("Unknown extension")
     return oligos
 
-def encode(alpha, defaultfreq, img_fpath, datafpath, verbosity, verbosity_level):
+def encode(alpha, defaultfreq, img_fpath, datafpath, verbosity, verbosity_level, extension):
     """Full image encoder with stats and exception handling"""
     img = io.imread(img_fpath)
-    return encode_image(img, alpha, img_fpath, defaultfreq, datafpath, verbosity, verbosity_level)
+    return encode_image(img, alpha, defaultfreq, datafpath, verbosity, verbosity_level, extension)
 
 # pylint: disable=missing-function-docstring
 def main():
@@ -54,6 +62,7 @@ def main():
         config.read_file(cfg)
     verbosity = bool(config['VERB']['enabled'])
     verbosity_level = int(config['VERB']['level'])
+    extension = config['IO_DIR']['ext']
 
     parser = argparse.ArgumentParser()
     parser.add_argument('IMG_FPATH',
@@ -73,7 +82,7 @@ def main():
     datafpath = args.DATAFPATH
     alpha = args.ALPHA
     defaultfreq = args.default_frequencies
-    encode(alpha, img_fpath, defaultfreq, img_fpath, datafpath, verbosity, verbosity_level)
+    encode(alpha, defaultfreq, img_fpath, datafpath, verbosity, verbosity_level, extension)
 # pylint: enable=missing-function-docstring
 
 

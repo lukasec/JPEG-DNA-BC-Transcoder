@@ -1,5 +1,6 @@
 """Jpeg DNA evaluation script"""
 
+import os
 from pathlib import Path
 from dataclasses import make_dataclass
 import math
@@ -72,16 +73,16 @@ def encode_decode(img, alpha):
         if FORMATTING:
             decoded = codec2.full_decode(oligos, "from_img")
         else:
-            decoded = codec2.full_decode(code, "from_img", res[1], res[2], res[3], res[4])
+            decoded = codec2.full_decode(code, "from_img", res[1], res[2], res[3], res[4], res[5])
     elif CHOICE == "from_file":
         with open(Path(jpegdna.__path__[0] + "/data/freqs.pkl"), "rb") as file:
             freqs = pickle.load(file)
-        decoded = codec2.full_decode(code, "from_file", res[1], res[2], freqs['freq_dc'], freqs['freq_ac'])
+        decoded = codec2.full_decode(code, "from_file", res[1], res[2], freqs['freq_dc'], freqs['freq_ac'], res[5])
     elif CHOICE == "default":
         if FORMATTING:
             decoded = codec2.full_decode(oligos, "default")
         else:
-            decoded = codec2.full_decode(code, "default", res[1], res[2])
+            decoded = codec2.full_decode(code, "default", res[1], res[2], res [5])
     if FORMATTING:
         return oligos, decoded
     return code, decoded
@@ -108,7 +109,9 @@ def main():
                 compression_rate, psnr = res
                 values.append(value(compression_rate, psnr))
         general_results.append(values)
-    with ExcelWriter("res/results.xlsx") as writer: # pylint: disable=abstract-class-instantiated
+    if not os.path.exists("io/jpegdnaio/res/"):
+        os.mkdir("io/jpegdnaio/res/")
+    with ExcelWriter("io/jpegdnaio/res/results.xlsx") as writer: # pylint: disable=abstract-class-instantiated
         for i in range(len(general_results)):
             dtf = pd.DataFrame(general_results[i])
             dtf.to_excel(writer, sheet_name=img_names[i], index=None, header=True)

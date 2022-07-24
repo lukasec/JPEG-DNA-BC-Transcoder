@@ -13,8 +13,6 @@ from jpegdna.transforms import ChannelSampler
 class GeneralInfoFormatter(AbstractFormatter):
     """Formatter for the general information related to the compression
 
-    :ivar alpha: alpha value of the compression, if it is known
-    :type alpha: float
     :ivar freq_origin: origin of the frequencies ("default" or "from_img")
     :type freq_origin: str
     :ivar m: first dimension of the image
@@ -36,8 +34,7 @@ class GeneralInfoFormatter(AbstractFormatter):
     """
 
     IMAGE_TYPES = ["gray", "RGB"]
-    def __init__(self, alpha, freq_origin, m, n, blockdims, max_cat, max_runcat, offset_size, dc_freq_len, ac_freq_len, image_type, sampler, header, oligo_length=200, debug=False):
-        self.alpha = alpha
+    def __init__(self, freq_origin, m, n, blockdims, max_cat, max_runcat, offset_size, dc_freq_len, ac_freq_len, image_type, sampler, header, oligo_length=200, debug=False):
         self.freq_origin = freq_origin
         self.m, self.n = m, n
         self.oligo_length = oligo_length
@@ -88,13 +85,10 @@ class GeneralInfoFormatter(AbstractFormatter):
             raise ValueError
         data_payload_length = self.oligo_length
         n_rows, n_cols = self.m, self.n
-        alpha = round(self.alpha, 3)
         blockdims = self.blockdims
         max_cat, max_runcat = self.max_cat, self.max_runcat
         offset_size = self.offset_size
         dc_freq_len, ac_freq_len = self.dc_freq_len, self.ac_freq_len
-        int_alpha = int(alpha)
-        float_alpha = alpha - int_alpha
         image_type = self.image_type
         if self.debug:
             oligo = (self.general_info_header +
@@ -106,10 +100,6 @@ class GeneralInfoFormatter(AbstractFormatter):
                      "\033[32m" + self.barcodes[offset_size//10] + self.barcodes[offset_size%10] +
                      "\033[31m" + self.barcodes[dc_freq_len//10] + self.barcodes[dc_freq_len%10] +
                      "\033[32m" + self.barcodes[ac_freq_len//10] + self.barcodes[ac_freq_len%10] +
-                     "\033[31m" + self.barcodes[int_alpha] +
-                     "\033[32m" + self.barcodes[int((float_alpha*10)%10)] +
-                     "\033[32m" + self.barcodes[int((float_alpha*100)%10)] +
-                     "\033[32m" + self.barcodes[int((float_alpha*1000)%10)] +
                      "\033[31m" + self.barcodes[image_type] + "\033[0m")
         else:
             oligo = (self.general_info_header +
@@ -121,10 +111,6 @@ class GeneralInfoFormatter(AbstractFormatter):
                      self.barcodes[offset_size//10] + self.barcodes[offset_size%10] +
                      self.barcodes[dc_freq_len//10] + self.barcodes[dc_freq_len%10] +
                      self.barcodes[ac_freq_len//10] + self.barcodes[ac_freq_len%10] +
-                     self.barcodes[int_alpha] +
-                     self.barcodes[int((float_alpha*10)%10)] +
-                     self.barcodes[int((float_alpha*100)%10)] +
-                     self.barcodes[int((float_alpha*1000)%10)] +
                      self.barcodes[image_type])
         if self.colored_image():
             oligo += self.barcodes[self.samplers.index(self.sampler)]
@@ -172,11 +158,6 @@ class GeneralInfoFormatter(AbstractFormatter):
         else:
             self.freq_origin = "from_img"
         reading_head += 10
-        self.alpha = (self.barcodes.index(oligo[reading_head:reading_head+5]) +
-                      self.barcodes.index(oligo[reading_head+5:reading_head+10]) / 10 +
-                      self.barcodes.index(oligo[reading_head+10:reading_head+15]) / 100 +
-                      self.barcodes.index(oligo[reading_head+15:reading_head+20]) / 1000)
-        reading_head += 20
         self.image_type = self.barcodes.index(oligo[reading_head:reading_head+5])
         reading_head += 5
         if self.colored_image():
@@ -193,4 +174,3 @@ class GeneralInfoFormatter(AbstractFormatter):
             print(f"Image size: {(self.m, self.n)}")
             print(f"(max_cat, max_runcat): {(self.max_cat, self.max_runcat)}")
             print(f"(dc_freq_len, ac_freq_len): {((self.dc_freq_len, self.ac_freq_len))}")
-            print(f"alpha: {self.alpha}")

@@ -84,4 +84,5 @@ from jpegdna.format.dataformatter import DataFormatter
 from jpegdna.format.generalinfoformatter import GeneralInfoFormatter
 from jpegdna.format.frequenciesformatter import RGBFrequenciesFormatter
 from jpegdna.format.frequenciesformatter import GrayFrequenciesFormatter
+from jpegdna.format.quantizationtablesformatter import QuantizationTablesInfoFormatter
 from jpegdna.format.jpegdnaformatter import JpegDNAFormatter

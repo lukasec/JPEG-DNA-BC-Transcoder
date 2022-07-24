@@ -9,3 +9,6 @@ opencv-python
 pandas
 nose
 coverage
+torch
+torchvision
+tensorboard

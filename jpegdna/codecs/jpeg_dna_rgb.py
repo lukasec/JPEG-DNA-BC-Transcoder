@@ -1,4 +1,5 @@
 """Encoding and decoding main functions for JPEG-DNA in RGB"""
+
 from pathlib import Path
 import pickle
 import jpegdna
@@ -18,8 +19,10 @@ CHANNEL_SAMPLER_VERBOSITY_THRESHOLD = 1
 
 GRAY_CODEC_VERBOSITY_THRESHOLD = 3
 
+
 class JPEGDNARGB(JPEGDNAGray):
     """JPEG-DNA codec for RGB images
+
     :param aplha: Alpha value (quantization step multiplier)
     :type alpha: float
     :param formatting: Formatting enabler
@@ -40,20 +43,20 @@ class JPEGDNARGB(JPEGDNAGray):
     :vartype zigzag: jpegdna.transforms.zigzag.ZigZag
     """
 
-    # This was done to ease simulation time with MESA simulator
-    def __init__(self, alpha, img_fpath, encoding, qtpath, channel_sampler, formatting=False, primer=None, verbose=False, verbosity=0):
+    # Path of JPEG image, and type of subsampling passed as additional arguments
+    def __init__(self, alpha, img_fpath, channel_sampler, encoding, formatting=False, primer=None, verbose=False, verbosity=0):
         self.path = img_fpath # Remember path of image for reading DCT coefficients and quantization tables of JPEG image
-        self.qtpath = qtpath
         self.sampler_name = channel_sampler # Now passed as an argument
+        self.encoding = encoding # Boolean value used in set_alpha method
         self.primer = primer
-        super().__init__(alpha, img_fpath, encoding, qtpath,
+        super().__init__(alpha, img_fpath, encoding,
                          formatting=formatting,
                          primer=self.primer,
                          verbose=(verbose and verbosity >= GRAY_CODEC_VERBOSITY_THRESHOLD),
                          verbosity=verbosity-3)
         self.verbose_rgb = verbose
         if formatting:
-            self.formatter = JpegDNAFormatter(alpha,
+            self.formatter = JpegDNAFormatter(None,
                                               "RGB",
                                               sampler=channel_sampler,
                                               primer=self.primer,
@@ -64,13 +67,9 @@ class JPEGDNARGB(JPEGDNAGray):
         self.sampler_name = channel_sampler
 
     def set_alpha(self, alpha, encoding):
-        """Used to be setter for alpha value and quantization tables
-        - Now extracts quantization tables from JPEG image if encoding 
-            or simply reads the given tables if not encoding
-        :param alpha: alpha value - ignore
-        :type alpha: float - ignore
-        :param encoding: True if encoding, False if decoding
-        :type encoding: Boolean
+        """ Modified: this method now essentially is part of
+            the encoding process which extracts the 
+            quantization tables of the JPEG image
         """
         if encoding:
             dec = PyCoefficientDecoder(self.path)
@@ -82,19 +81,20 @@ class JPEGDNARGB(JPEGDNAGray):
             else:
                 raise ValueError("Wrong channel type, either pick 'luma' or 'chroma'")
             if self.formatting:
-                self.formatter = JpegDNAFormatter(self.alpha, "gray", None, primer=self.primer, oligo_length=200, debug=False)
-        else:
-            QT = np.load(self.path)
-            self.alpha = alpha
-            if self.channel_type == "luma":
-                self.gammas = QT['x']
-            elif self.channel_type == "chroma":
-                self.gammas = QT['y']
-            else:
-                raise ValueError("Wrong channel type, either pick 'luma' or 'chroma'")
-            if self.formatting:
-                self.formatter = JpegDNAFormatter(self.alpha, "gray", None, primer=self.primer, oligo_length=200, debug=False)
+                self.formatter = JpegDNAFormatter(self.alpha, "RGB", None, primer=self.primer, oligo_length=200, debug=False)
 
+    def set_gammas(self, gammas):
+        """Setter for the quantization table
+            This method essentially is part
+            of the decoding process
+
+        :param gammas: quantization table
+        :type gammas: np.array
+        """
+        self.gammas = gammas
+        if self.formatting:
+            self.formatter = JpegDNAFormatter(self.gammas, "RGB", sampler=self.sampler_name,
+                                              primer=self.primer, oligo_length=200, debug=False)
 
     # pylint: disable=invalid-name
     def compute_min_dynamic(self, img, channel_type=None):
@@ -124,7 +124,7 @@ class JPEGDNARGB(JPEGDNAGray):
     # pylint: disable=invalid-name
     def full_encode(self, inp, *args):
         if self.verbose_rgb:
-            print(f"========================\nEncoding input image:\n{inp}\n========================")
+            print(f"========================\nTranscoding input image\n========================")
         if len(args) == 0:
             raise ValueError
         YCbCr = self.channel_sampler.forward(self.color_converter.forward(inp))
@@ -134,20 +134,18 @@ class JPEGDNARGB(JPEGDNAGray):
             raise ValueError(f"Invalid alpha value, minimal possible value for this image: {min_alpha}")
         #Computing frequencies
         Y, Cb, Cr = YCbCr # Ignore, kept to avoid errors with the original code
+        gamma_tables = [None, None, None]
 
         # Transcoder: Init. coefficient decoder
         dec = PyCoefficientDecoder(self.path)
 
-        # Save quantization tables to a seperate file for decoding
-        x = np.array(dec.get_quantization_table(0))
-        y = np.array(dec.get_quantization_table(1))
-        np.savez(self.qtpath, x=x, y=y)
-
         # Encoding Y
         self.set_channel_type("luma")
+        gamma_tables[0] = self.get_gammas()
         if args[0] == "from_img":
             # Read DCT coefficients of L channel and also its height and width in blocks
             self.set_frequencies_from_img(Y, np.array(dec.get_dct_coefficients(0)), dec.get_height_in_blocks(0), dec.get_width_in_blocks(0))
+        # Not relevant to Transcoder
         elif args[0] == "default":
             if len(args) != 1:
                 raise ValueError
@@ -163,6 +161,7 @@ class JPEGDNARGB(JPEGDNAGray):
 
         # Encoding Cb
         self.set_channel_type("chroma")
+        gamma_tables[1] = self.get_gammas()
         if args[0] == "from_img":
             # Read DCT coefficients of Cb channel and also its height and width in blocks
             self.set_frequencies_from_img(Cb, np.array(dec.get_dct_coefficients(1)), dec.get_height_in_blocks(1), dec.get_width_in_blocks(1))
@@ -182,6 +181,7 @@ class JPEGDNARGB(JPEGDNAGray):
 
         # Encoding Cr
         self.set_channel_type("chroma")
+        gamma_tables[2] = self.get_gammas()
         if args[0] == "from_img":
             # Read DCT coefficients of Cr channel and also its height and width in blocks
             self.set_frequencies_from_img(Cr, np.array(dec.get_dct_coefficients(2)), dec.get_height_in_blocks(2), dec.get_width_in_blocks(2))
@@ -199,83 +199,83 @@ class JPEGDNARGB(JPEGDNAGray):
         str_Cr = super().encode(Cr)
         res_Cr = super().get_state()
         if self.formatting:
+            self.set_gammas(gamma_tables)
             return self.formatter.full_format(str_Y + str_Cb + str_Cr, args[0],
                                               res_Y[1], res_Y[2],
                                               (res_Y[3], res_Cb[3], res_Cr[3]),
                                               (res_Y[4], res_Cb[4], res_Cr[4]))
         else:
-            return (str_Y + str_Cb + str_Cr, (res_Y, res_Cb, res_Cr))
+            return (str_Y + str_Cb + str_Cr, (res_Y, res_Cb, res_Cr), gamma_tables)
 
     def full_decode(self, code, *args):
-        # We decode normally, the only changed step is that instead of setting alpha as previously
-        #           we now instead read the quantization tables passed as arguments into the decoder 
         if self.formatting:
-            code, (alpha, m, n, freq_dc_out, freq_ac_out) = self.formatter.full_deformat(code)
+            code, (gamma_tables, m, n, freq_dc_out, freq_ac_out) = self.formatter.full_deformat(code)
             freq_origin = self.formatter.freq_origin
-            self.set_alpha(alpha, False) 
+        else:
+            gamma_tables = args[-1]
 
-        self.set_channel_type("luma")
+        self.set_gammas(gamma_tables[0])
         formatting = self.formatting
         self.formatting = False
 
         if formatting:
             if freq_origin == "from_img" or freq_origin == "from_array":
-                Y = super().full_decode(code, freq_origin, m[0], n[0], freq_dc_out[0], freq_ac_out[0])
+                Y = super().full_decode(code, freq_origin, m[0], n[0], freq_dc_out[0], freq_ac_out[0], gamma_tables[0])
             elif freq_origin == "default":
                 freq_dc, freq_ac = self.get_default_frequencies_rgb('Y')
-                Y = super().full_decode(code, "from_file", m[0], n[0], freq_dc, freq_ac)
+                Y = super().full_decode(code, "from_file", m[0], n[0], freq_dc, freq_ac, gamma_tables[0])
             else:
                 raise ValueError("Wrong parameters")
         else:
             if args[0] == "from_img" or args[0] == "from_array":
-                Y = super().full_decode(code, args[0], args[1][0][0], args[1][0][1], args[1][0][2], args[1][0][3])
+                Y = super().full_decode(code, args[0], args[1][0][0], args[1][0][1], args[1][0][2], args[1][0][3], gamma_tables[0])
             elif args[0] == "default":
                 freq_dc, freq_ac = self.get_default_frequencies_rgb('Y')
-                Y = super().full_decode(code, "from_file", args[1][0][0], args[1][0][1], freq_dc, freq_ac)
+                Y = super().full_decode(code, "from_file", args[1][0][0], args[1][0][1], freq_dc, freq_ac, gamma_tables[0])
             else:
                 raise ValueError("Wrong parameters")
         code = self.remain
 
-        self.set_channel_type("chroma")
+        self.set_gammas(gamma_tables[1])
         if formatting:
             if freq_origin == "from_img" or freq_origin == "from_array":
-                Cb = super().full_decode(code, freq_origin, m[1], n[1], freq_dc_out[1], freq_ac_out[1])
+                Cb = super().full_decode(code, freq_origin, m[1], n[1], freq_dc_out[1], freq_ac_out[1], gamma_tables[1])
             elif freq_origin == "default":
                 freq_dc, freq_ac = self.get_default_frequencies_rgb('Cb')
-                Cb = super().full_decode(code, "from_file", m[1], n[1], freq_dc, freq_ac)
+                Cb = super().full_decode(code, "from_file", m[1], n[1], freq_dc, freq_ac, gamma_tables[1])
             else:
                 raise ValueError("Wrong parameters")
         else:
             if args[0] == "from_img" or args[0] == "from_array":
-                Cb = super().full_decode(code, args[0], args[1][1][0], args[1][1][1], args[1][1][2], args[1][1][3])
+                Cb = super().full_decode(code, args[0], args[1][1][0], args[1][1][1], args[1][1][2], args[1][1][3], gamma_tables[1])
             elif args[0] == "default":
                 freq_dc, freq_ac = self.get_default_frequencies_rgb('Cb')
-                Cb = super().full_decode(code, "from_file", args[1][1][0], args[1][1][1], freq_dc, freq_ac)
+                Cb = super().full_decode(code, "from_file", args[1][1][0], args[1][1][1], freq_dc, freq_ac, gamma_tables[1])
             else:
                 raise ValueError("Wrong parameters")
         code = self.remain
 
-        self.set_channel_type("chroma")
+        self.set_gammas(gamma_tables[2])
         if formatting:
             if freq_origin == "from_img" or freq_origin == "from_array":
-                Cr = super().full_decode(code, freq_origin, m[2], n[2], freq_dc_out[2], freq_ac_out[2])
+                Cr = super().full_decode(code, freq_origin, m[2], n[2], freq_dc_out[2], freq_ac_out[2], gamma_tables[2])
             elif freq_origin == "default":
                 freq_dc, freq_ac = self.get_default_frequencies_rgb('Cr')
-                Cr = super().full_decode(code, "from_file", m[2], n[2], freq_dc, freq_ac)
+                Cr = super().full_decode(code, "from_file", m[2], n[2], freq_dc, freq_ac, gamma_tables[2])
             else:
                 raise ValueError("Wrong parameters")
         else:
             if args[0] == "from_img" or args[0] == "from_array":
-                Cr = super().full_decode(code, args[0], args[1][2][0], args[1][2][1], args[1][2][2], args[1][2][3])
+                Cr = super().full_decode(code, args[0], args[1][2][0], args[1][2][1], args[1][2][2], args[1][2][3], gamma_tables[2])
             elif args[0] == "default":
                 freq_dc, freq_ac = self.get_default_frequencies_rgb('Cr')
-                Cr = super().full_decode(code, "from_file", args[1][2][0], args[1][2][1], freq_dc, freq_ac)
+                Cr = super().full_decode(code, "from_file", args[1][2][0], args[1][2][1], freq_dc, freq_ac, gamma_tables[2])
             else:
                 raise ValueError("Wrong parameters")
         self.formatting = formatting
 
         jpeg_decoded =  self.color_converter.inverse(self.channel_sampler.inverse((Y, Cb, Cr)))
         if self.verbose_rgb:
-            print(f"========================\nReconstructed image:\n{jpeg_decoded}\n========================")
+            print(f"========================\nDecoding DNA\n========================")
         return jpeg_decoded
     # pylint: enable=invalid-name

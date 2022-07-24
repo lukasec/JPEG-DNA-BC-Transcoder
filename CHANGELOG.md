@@ -2,11 +2,19 @@
 
 ## Ongoing work
 
-- Overheads for quantization tables, Huffman/Goldman category and run/category codewords
-- Consensus for noised formatted oligos
-- Error correction codes
+- Constrained Shannon Fano entropy coder (testing phase)
+- Thumbnail-specific encoder (testing phase)
 
-## Recently added (12/06/21)
+- Consensus for noised formatted oligos (conception)
+- Noise model (implementation)
+- Transcoder JPEG -> JPEG DNA (and revert) (implementation)
+- Error correction codes(conception)
+
+## 07/06/22
+
+- Overheads for quantization tables
+
+## 12/06/21
 
 - Edge padding
 - Common format for RGB and gray level, no prior needed on the type of image (RGB or gray) to decode.

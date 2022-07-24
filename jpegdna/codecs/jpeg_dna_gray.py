@@ -2,7 +2,6 @@
 
 from pathlib import Path
 import pickle
-from tkinter import N
 import numpy as np
 import jpegdna
 from jpegdna.transforms import DCT
@@ -35,6 +34,7 @@ EOB_SHIFT_IDX = 15
 
 class JPEGDNAGray(AbstractCoder):
     """JPEG-DNA codec for gray-level images
+
     :param aplha: Alpha value (quantization step multiplier)
     :type alpha: float
     :param formatting: Formatting enabler
@@ -76,13 +76,13 @@ class JPEGDNAGray(AbstractCoder):
                               [99, 99, 99, 99, 99, 99, 99, 99],
                               [99, 99, 99, 99, 99, 99, 99, 99]])
     EOB_SHIFT = False
-    def __init__(self, alpha, img_fpath, encoding, qtpath, formatting=False, primer=None, channel_type="luma", verbose=False, verbosity=0):
-        self.path = img_fpath
-        self.encoding = encoding
-        self.qtpath = qtpath
+    def __init__(self, alpha, img_fpath, encoding, formatting=False, primer=None, channel_type="luma", verbose=False, verbosity=0):
+        self.path = self.path = img_fpath # Remember path of image for quantization tables of JPEG image
+        self.encoding = encoding # Boolean value used in set_alpha method
         self.channel_type = channel_type
         self.formatting = formatting
         self.primer = primer
+        self.gammas = None
         self.set_alpha(alpha, encoding)
         self.lut = load_lut_matrix(Path(jpegdna.__path__[0] + "/data/lut.mat"))
         self.codebook = load_codebook_matrix(Path(jpegdna.__path__[0] + "/data/codebook.pkl"))
@@ -93,7 +93,7 @@ class JPEGDNAGray(AbstractCoder):
         self.verbosity = verbosity
         self.remain = ""
         if self.formatting:
-            self.formatter = JpegDNAFormatter(self.alpha, "gray", None, primer=self.primer, oligo_length=200, debug=False)
+            self.formatter = JpegDNAFormatter(self.gammas, "gray", None, primer=self.primer, oligo_length=200, debug=False)
         else:
             self.formatter = None
         self.dc_coeff_coder = None
@@ -102,11 +102,10 @@ class JPEGDNAGray(AbstractCoder):
         self.huffman_ac_coder = None
 
     def set_alpha(self, alpha, encoding):
-        """Setter for alpha value
-        :param alpha: alpha value
-        :type alpha: float
+        """ Modified: this method now essentially is part of
+            the encoding process which extracts the 
+            quantization tables of the JPEG image
         """
-
         if encoding:
             dec = PyCoefficientDecoder(self.path)
             self.alpha = alpha
@@ -117,38 +116,46 @@ class JPEGDNAGray(AbstractCoder):
             else:
                 raise ValueError("Wrong channel type, either pick 'luma' or 'chroma'")
             if self.formatting:
-                self.formatter = JpegDNAFormatter(self.alpha, "gray", None, primer=self.primer, oligo_length=200, debug=False)
-        else:
-            QT = np.load(self.path)
-            self.alpha = alpha
-            if self.channel_type == "luma":
-                self.gammas = QT['x']
-            elif self.channel_type == "chroma":
-                self.gammas = QT['y']
-            else:
-                raise ValueError("Wrong channel type, either pick 'luma' or 'chroma'")
-            if self.formatting:
-                self.formatter = JpegDNAFormatter(self.alpha, "gray", None, primer=self.primer, oligo_length=200, debug=False)
-
-
-
+                self.formatter = JpegDNAFormatter(self.alpha, "RGB", None, primer=self.primer, oligo_length=200, debug=False)
+            
     def get_alpha(self):
         """Getter for alpha value
+
         :return: alpha value
         :rtype: float
         """
         return self.alpha
 
+    def set_gammas(self, gammas):
+        """Setter for the quantization table
+
+        :param gammas: quantization table
+        :type gammas: np.array
+        """
+        self.gammas = gammas
+        if self.formatting:
+            self.formatter = JpegDNAFormatter(self.gammas, "gray", None, oligo_length=200, debug=False)
+
+    def get_gammas(self):
+        """Getter for the quantization table
+
+        :return: quantization table
+        :rtype: np.array
+        """
+        return self.gammas
+
     def set_channel_type(self, channel_type):
         """Setter for the channel type
+
         :param channel_type: Choice between 'luma' and 'chroma'
         :type channel_type: str
         """
         self.channel_type = channel_type
-        self.set_alpha(self.alpha, self.encoding)
+        self.set_alpha(self.alpha, True)
 
     def set_state(self, *args, case=None):
         """Sets the state of the codec
+
         :param freq_dc: List of appearance frequences for each element of the alphabet in the dc values
         :type freq_dc: list(float)
         :param freq_ac: List of appearance frequences for each element of the alphabet in the ac values
@@ -198,10 +205,11 @@ class JPEGDNAGray(AbstractCoder):
 
         if case is not None:
             raise ValueError
-        return self.total_runlength_nts, self.m, self.n, self.freq_dc, self.freq_ac
+        return self.total_runlength_nts, self.m, self.n, self.freq_dc, self.freq_ac, self.gammas
 
     def compute_min_dynamic(self, img, channel_type="luma"):
         """Compute the minimum possible alpha value for a given image
+
         :param img: input image
         :type img: np.array
         :return: minimum possible alpha value
@@ -251,6 +259,7 @@ class JPEGDNAGray(AbstractCoder):
 
     def set_frequencies_from_array(self, freq_dc, freq_ac):
         """Sets the frequencies used using a pre-existing frequency tables
+
         :param freq_dc: DC coefficients frequencies table
         :type freq_dc: array
         :param freq_ac: AC coefficients frequencies table
@@ -260,10 +269,11 @@ class JPEGDNAGray(AbstractCoder):
         self.freq_dc = freq_dc
         self.freq_ac = freq_ac
 
-    # Transcoder: instead of computing DCT and quantizing, just read JPEG image's DCT coefficients
+     # Transcoder: instead of computing DCT and quantizing, just read JPEG image's DCT coefficients
     # DCT coefficient are passed as argument, so are the height and width in blocks of our DCT coefficients
     def set_frequencies_from_img(self, inp, DCT_coeffs, height_in_blocks, width_in_blocks):
         """Computes the frenquencies in function of the image DCT quantized coefficients
+
         :param inp: input image
         :type inp: np.array
         """
@@ -276,7 +286,8 @@ class JPEGDNAGray(AbstractCoder):
         count_run_end_tot = 0
         count_run16_tot = 0
 
-        idx = 0     
+        idx = 0 
+        # computing stats on each block
         for i in range(nb_row_blocks):
             dc_prev_coeff = 0
             for j in range(nb_col_blocks):
@@ -284,8 +295,8 @@ class JPEGDNAGray(AbstractCoder):
                 # Read quantized DCT coefficients, and reshape them into 8x8 blocks
                 coeff = DCT_coeffs[idx,:].reshape((8,8))
                 idx = idx + 1
+                # Now continue JPEG DNA encoding
 
-                # Now continue JPEG DNA encoding 
                 # zigag transform -> sequence of quantized values
                 seq_coeff = self.zigzag.forward(coeff)
                 # differential coding of the dc value
@@ -305,20 +316,21 @@ class JPEGDNAGray(AbstractCoder):
         self.set_state(inp, *args, case='encode')
         out = self.encode(inp)
         if self.formatting:
-            return self.formatter.full_format(out, args[0], *self.get_state()[1:])
+            return self.formatter.full_format(out, args[0], *self.get_state()[1:-1])
         else:
             return (out, self.get_state())
 
     def encode(self, inp):
         """JPEG-DNA encoder: encodes the image into a DNA-like bitstream
+
         :param inp: input image
         :type inp: np.array
         :return: DNA-like bitstream
         :rtype: str
         """
 
-        if self.verbose:
-            print(f"========================\nEncoding input image:\n{inp}\n========================")
+        #if self.verbose:
+            #print(f"========================\nEncoding input image:\n{inp}\n========================")
         self.zigzag.verbose = (self.verbose and self.verbosity >= ZIG_ZAG_VERBOSITY_THRESHOLD)
 
         total_cat_len_count = 0
@@ -412,18 +424,19 @@ class JPEGDNAGray(AbstractCoder):
                 # adding to stream
                 jpeg_coded += code_block
         self.total_runlength_nts = total_cat_len_count + total_run_len_count
-        if self.verbose:
-            print(f"========================\nEncoded stream:\n{jpeg_coded}\n========================")
+        # if self.verbose:
+        #     print(f"========================\nEncoded stream:\n{jpeg_coded}\n========================")
         return jpeg_coded
 
     def full_decode(self, code, *args):
         if self.formatting:
-            code, (alpha, m, n, freq_dc, freq_ac) = self.formatter.full_deformat(code)
+            code, (gammas, m, n, freq_dc, freq_ac) = self.formatter.full_deformat(code)
             freq_origin = self.formatter.freq_origin
-            self.set_alpha(alpha, False)
+            self.set_gammas(gammas)
             self.set_state(freq_origin, m, n, freq_dc, freq_ac, case='decode')
         else:
-            self.set_state(*args, case='decode')
+            self.set_state(*args[:-1], case='decode')
+            self.set_gammas(args[-1])
         if args[0] in ["default", "from_file"] and self.EOB_SHIFT:
             # Cheating with the position of the codeword for #EOB (the codeword should not be too short)
             dummy_freq_ac_idx = np.argpartition(self.freq_ac, -EOB_SHIFT_IDX)[-EOB_SHIFT_IDX:]
@@ -436,6 +449,7 @@ class JPEGDNAGray(AbstractCoder):
 
     def decode(self, code):
         """JPEG-DNA decoder: decodes the input DNA-like bitstream into an block image of size self.n x self.m
+
         :param code: DNA-like bitstream
         :type code: str
         :return: block image
@@ -546,7 +560,7 @@ class JPEGDNAGray(AbstractCoder):
         jpeg_decoded = np.clip(jpeg_decoded[:self.n, :self.m], 0, 255).astype(np.uint8)
         # For channel synchronisation in RGB
         self.remain = code
-        if self.verbose:
-            print(f"========================\nReconstructed image:\n{jpeg_decoded}\n========================")
+        #if self.verbose:
+            #print(f"========================\nReconstructed image:\n{jpeg_decoded}\n========================")
         self.zigzag.verbose = False
         return jpeg_decoded

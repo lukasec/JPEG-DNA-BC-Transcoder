@@ -27,10 +27,21 @@ def decode_image(oligos, verbosity, verbosity_level):
     decoded = codec.decode(oligos)
     return decoded
 
-def decode(datafpath, imgoutpath, verbosity, verbosity_level):
+def decode(datafpath, imgoutpath, verbosity, verbosity_level, extension):
     """Full image decoder with stats and exception handling"""
-    with open(datafpath, 'rb') as f:
-        oligos = pickle.load(f)
+    if extension in ["pickle", "pkl"]:
+        with open(datafpath, 'rb') as f:
+            oligos = pickle.load(f)
+    elif extension in ["fasta", "fas"]:
+        ids, oligos = [], []
+        with open(datafpath, "r", encoding="utf-8") as f:
+            for line in f:
+                if line[0] == ">":
+                    ids.append(line[1:])
+                else:
+                    oligos.append(line)
+    else:
+        raise ValueError("Wrong extension")
     decoded = decode_image(oligos, verbosity, verbosity_level)
     io.imsave(imgoutpath, decoded)
     return decoded
@@ -42,6 +53,7 @@ def main():
         config.read_file(cfg)
     verbosity = bool(config['VERB']['enabled'])
     verbosity_level = int(config['VERB']['level'])
+    extension = config['IO_DIR']['ext']
 
     parser = argparse.ArgumentParser()
     parser.add_argument('DATAFPATH',
@@ -55,7 +67,7 @@ def main():
     datafpath = args.DATAFPATH
     imgoutpath = args.IMGOUTPATH
 
-    decode(datafpath, imgoutpath, verbosity, verbosity_level)
+    decode(datafpath, imgoutpath, verbosity, verbosity_level, extension)
 # pylint: enable=missing-function-docstring
 
 

@@ -32,14 +32,25 @@ def stats(func):
                 print(f"Compression rate: {compression_rate} bits/nt")
                 img_info = {"total_runlength_nts": res[0], "m": res[1], "n": res[2]}
                 freq_info = {"freq_dc": res[3], "freq_ac": res[4]}
+                gammas_info = {"gammas": res[5]}
             if args[2]:
-                with open(args[4], 'wb') as f:
-                    pickle.dump(oligos, f)
+                if args[10] in ["pickle", "pkl"]:
+                    with open(args[4], 'wb') as f:
+                        pickle.dump(oligos, f)
+                elif args[10] in ["fasta", "fas"]:
+                    fasta_file = open(args[4], "w+", encoding='utf-8')
+                    out = '\n'.join(['>Oligo' + str(i) + "\n" + el for i, el in enumerate(oligos)])
+                    fasta_file.write(out)
+                    fasta_file.close()
+                else:
+                    raise ValueError("Unknown extension")
             else:
                 with open(args[4], 'w', encoding="UTF-8") as f:
                     f.write(code)
                 with open(args[6], "wb") as f:
                     pickle.dump(img_info, f)
+                with open(args[7], "wb") as f:
+                    pickle.dump(gammas_info, f)
                 if not args[3]:
                     with open(args[5], "wb") as f:
                         pickle.dump(freq_info, f)
@@ -47,7 +58,7 @@ def stats(func):
 
 # pylint: disable=unused-argument
 @stats
-def encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level):
+def encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, gammafpath,  verbosity, verbosity_level, extension):
     """Encode an image"""
     codec = JPEGDNAGray(alpha, formatting=formatting, verbose=verbosity, verbosity=verbosity_level)
     if formatting:
@@ -63,10 +74,10 @@ def encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, i
     return code, res
 # pylint: enable=unused-argument
 
-def encode(alpha, formatting, defaultfreq, img_fpath, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level):
+def encode(alpha, formatting, defaultfreq, img_fpath, datafpath, freqoutfpath, infofpath, gammafpath, verbosity, verbosity_level, extension):
     """Full image encoder with stats and exception handling"""
     img = io.imread(img_fpath)
-    return encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level)
+    return encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, infofpath, gammafpath, verbosity, verbosity_level, extension)
 
 # pylint: disable=missing-function-docstring
 def main():
@@ -75,6 +86,7 @@ def main():
         config.read_file(cfg)
     verbosity = bool(config['VERB']['enabled'])
     verbosity_level = int(config['VERB']['level'])
+    extension = config['IO_DIR']['ext']
 
     parser = argparse.ArgumentParser()
     parser.add_argument('IMG_FPATH',
@@ -102,13 +114,15 @@ def main():
         if not os.path.exists(io_dir):
             os.mkdir(io_dir)
         infofpath = io_dir + config['IO_ENCODE']["info_out_path"]
+        gammafpath = io_dir + config['IO_ENCODE']["gammas_out_path"]
     else:
         infofpath = None
+        gammafpath = None
     if defaultfreq or formatting:
         freqoutfpath = None
     else:
         freqoutfpath = io_dir + config['IO_ENCODE']["freqs_out_path"]
-    encode(alpha, formatting, defaultfreq, img_fpath, datafpath, freqoutfpath, infofpath, verbosity, verbosity_level)
+    encode(alpha, formatting, defaultfreq, img_fpath, datafpath, freqoutfpath, infofpath, gammafpath, verbosity, verbosity_level, extension)
 # pylint: enable=missing-function-docstring
 
 

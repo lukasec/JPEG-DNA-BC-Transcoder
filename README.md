@@ -36,7 +36,7 @@ Tip: Run the following command in order to find the path to *libjpeg*:
 ```
 brew info libjpeg
 ```
-To install the header files needed to build Python extensions:
+To install the header files needed to build Python extensions: (you can probably skip this step if you already have all the needed developer tools like gcc,...)
 ```
 pip install python3-dev
 ```
@@ -48,19 +48,19 @@ python setupWrapper.py build_ext −−inplace
 
 ## Functionality
 ### Encoding
-To encode a JPEG file into DNA nucleotides you will have to specify the path of your JPEG image, the path on which you would like to store the output DNA sequence and the path you would like to store the quantization tables of the JPEG file which will be needed for encoding.
+To encode a JPEG file into DNA nucleotides you will have to specify the path of your JPEG image and the path on which you would like to store the output DNA sequence.
 ```
  python -m jpegdna.scripts.jpegdnargb_encode $IMG_PATH.jpg $DNA_OUT_PATH
- $QUANTIZATION_TABLES_OUT_PATH.npz
  ```
  Please note that the terminal will print the type of Chroma Subsampling of the JPEG file. You will have to remember this when decoding the DNA sequence.
  
  ### Decoding
-To decode a DNA sequence back to a JPEG file you will have to specify first the type of Chroma Subsampling of the original JPEG image (simply copy the output of the encoder), the path of the quantization tables, the path of the DNA sequence, and finally the path on which you would like to store the output decoded PNG file.
+To decode a DNA sequence back to a JPEG file you will have to specify first the type of Chroma Subsampling of the original JPEG image (simply copy the output of the encoder), the path of the DNA sequence, and finally the path on which you would like to store the output decoded PNG file. You also have to specify that no formatting was used.
  ```
- python -m jpegdna.scripts.jpegdnargb_decode $SUBSAMPLING $QUANTIZATION_TABLES_PATH.npz
- $DNA_IN_PATH $IMG_OUT_PATH.png no_format
+ python -m jpegdna.scripts.jpegdnargb_decode $SUBSAMPLING $DNA_IN_PATH $IMG_OUT_PATH.png no_format
 ```
+Example for first parameter: $SUBSAMPLING = 4:2:0
+
 ### Credit:
 The original JPEG DNA software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python). <br>
 The adapted python wrapper can be found on [dct-coefficient-decoder](https://github.com/btlorch/dct-coefficient-decoder).

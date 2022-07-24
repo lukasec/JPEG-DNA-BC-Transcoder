@@ -1,5 +1,6 @@
 """Jpeg DNA RGB evaluation script"""
 
+import os
 from pathlib import Path
 from dataclasses import make_dataclass
 import math
@@ -67,16 +68,16 @@ def encode_decode(img, alpha):
         if FORMATTING:
             oligos = codec.full_encode(img, "from_img")
         else:
-            (code, res) = codec.full_encode(img, "from_img")
+            (code, res, gammas) = codec.full_encode(img, "from_img")
     elif CHOICE == "from_file":
         with open(Path(jpegdna.__path__[0] + "/data/freqs_rgb_4_2_2.pkl"), "rb") as file:
             freqs = pickle.load(file)
-        (code, res) = codec.full_encode(img, "from_file", freqs['freq_dc'], freqs['freq_ac'])
+        (code, res, gammas) = codec.full_encode(img, "from_file", freqs['freq_dc'], freqs['freq_ac'])
     elif CHOICE == "default":
         if FORMATTING:
             oligos = codec.full_encode(img, "default")
         else:
-            (code, res) = codec.full_encode(img, "default")
+            (code, res, gammas) = codec.full_encode(img, "default")
     # Decoding
     codec2 = JPEGDNARGB(alpha, formatting=FORMATTING, verbose=False, verbosity=3)
     if CHOICE == "from_img":
@@ -86,14 +87,14 @@ def encode_decode(img, alpha):
             params = ((res[0][1], res[0][2], res[0][3], res[0][4]),
                       (res[1][1], res[1][2], res[1][3], res[1][4]),
                       (res[1][1], res[2][2], res[2][3], res[2][4]))
-            decoded = codec2.full_decode(code, "from_img", params)
+            decoded = codec2.full_decode(code, "from_img", params, gammas)
     elif CHOICE == "from_file":
         with open(Path(jpegdna.__path__[0] + "/data/freqs_rgb_4_2_2.pkl"), "rb") as file:
             freqs = pickle.load(file)
         params = ((res[0][1], res[0][2], freqs['Y']['freq_dc'], freqs['Y']['freq_ac']),
                   (res[1][1], res[1][2], freqs['Cb']['freq_dc'], freqs['Cb']['freq_ac']),
                   (res[2][1], res[2][2], freqs['Cr']['freq_dc'], freqs['Cr']['freq_ac']))
-        decoded = codec2.full_decode(code, "from_file", params)
+        decoded = codec2.full_decode(code, "from_file", params, gammas)
     elif CHOICE == "default":
         if FORMATTING:
             decoded = codec2.full_decode(oligos, "default")
@@ -101,7 +102,7 @@ def encode_decode(img, alpha):
             params = ((res[0][1], res[0][2]),
                       (res[1][1], res[1][2]),
                       (res[2][1], res[2][2]))
-            decoded = codec2.full_decode(code, "default", params)
+            decoded = codec2.full_decode(code, "default", params, gammas)
     if FORMATTING:
         return oligos, decoded
     return code, decoded
@@ -137,7 +138,9 @@ def main():
                 else:
                     continue
         general_results.append(values)
-    with ExcelWriter("res/results_rgb.xlsx") as writer: # pylint: disable=abstract-class-instantiated
+    if not os.path.exists("io/jpegdnaio/res/"):
+        os.mkdir("io/jpegdnaio/res/")
+    with ExcelWriter("io/jpegdnaio/res/results_rgb.xlsx") as writer: # pylint: disable=abstract-class-instantiated
         for i in range(len(general_results)):
             dtf = pd.DataFrame(general_results[i])
             dtf.to_excel(writer, sheet_name=img_names[i], index=None, header=True)

@@ -62,5 +62,5 @@ To decode a DNA sequence back to a JPEG file you will have to specify first the 
 Example for first parameter: $SUBSAMPLING = 4:2:0
 
 ### Credit:
-The original JPEG DNA software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python). <br>
+The original JPEG DNA software can be found on [Jpeg_DNA_Python](https://github.com/jpegdna-mediacoding/Jpeg_DNA_Python). Check its LICENSE.md document in the root of this project. <br>
 The adapted python wrapper can be found on [dct-coefficient-decoder](https://github.com/btlorch/dct-coefficient-decoder).

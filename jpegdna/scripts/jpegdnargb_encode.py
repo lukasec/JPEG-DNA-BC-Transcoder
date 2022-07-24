@@ -77,7 +77,7 @@ def encode_image(img, alpha, formatting, defaultfreq, datafpath, freqoutfpath, i
     """Function for encoding"""
 
     # Pass the img_fpath, and type of subsampling as an argument as well
-    codec = JPEGDNARGB(alpha, img_fpath, channel_sampler, True, mformatting=formatting, verbose=verbosity, verbosity=verbosity_level)
+    codec = JPEGDNARGB(alpha, img_fpath, channel_sampler, True, formatting=formatting, verbose=verbosity, verbosity=verbosity_level)
     if formatting:
         if defaultfreq:
             oligos = codec.full_encode(img, "default")

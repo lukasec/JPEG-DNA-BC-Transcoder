@@ -55,9 +55,9 @@ To encode a JPEG file into DNA nucleotides you will have to specify the path of 
  Please note that the terminal will print the type of Chroma Subsampling of the JPEG file. You will have to remember this when decoding the DNA sequence.
  
  ### Decoding
-To decode a DNA sequence back to a JPEG file you will have to specify first the type of Chroma Subsampling of the original JPEG image (simply copy the output of the encoder), the path of the DNA sequence, and finally the path on which you would like to store the output decoded PNG file. You also have to specify that no formatting was used.
+To decode a DNA sequence back to a JPEG file you will have to specify first the type of Chroma Subsampling of the original JPEG image (simply copy the output of the encoder), the path of the DNA sequence, and finally the path on which you would like to store the output decoded PNG file.
  ```
- python -m jpegdna.scripts.jpegdnargb_decode $SUBSAMPLING $DNA_IN_PATH $IMG_OUT_PATH.png no_format
+ python -m jpegdna.scripts.jpegdnargb_decode $SUBSAMPLING $DNA_IN_PATH $IMG_OUT_PATH.png
 ```
 Example for first parameter: $SUBSAMPLING = 4:2:0
 

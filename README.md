@@ -1,6 +1,7 @@
 <p float="left">
 <img src="./img/logos/logos.png" width="350">
 </p>
+
 # JPEG DNA BC Transcoder
 ## Bachelor Semester Project: JPEG Transcoding for DNA based storage 
 ## École Polytechnique Fédérale de Lausanne, Computer and Communication Sciences

@@ -2,7 +2,7 @@
 <img src="./img/logos/logos.png" width="350">
 </p>
 
-## Bachelor Semester Project: JPEG Transcoding for DNA based storage 
+# Bachelor Semester Project: JPEG Transcoding for DNA based storage 
 ## École Polytechnique Fédérale de Lausanne, Computer and Communication Sciences
 
 The goal of this project is to study the state of the art in DNA storage and coding, and develop a transcoding module that encodes the quantized DCT coefficients of an already compressed JPEG file with DNA nucleotides, which in turn is then integrated with a DNA sequencing, storage and synthesis simulator. 

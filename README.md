@@ -2,8 +2,10 @@
 <img src="./img/logos/logos.png" width="350">
 </p>
 
-# Bachelor Semester Project: JPEG Transcoding for DNA based storage 
+# JPEG DNA BC Transcoder
+## Bachelor Semester Project: JPEG Transcoding for DNA based storage 
 ## École Polytechnique Fédérale de Lausanne, Computer and Communication Sciences
+### Supervised by Prof. Dr. Touradj Ebrahimi and Davi Lazzarotto
 
 The goal of this project is to study the state of the art in DNA storage and coding, and develop a transcoding module that encodes the quantized DCT coefficients of an already compressed JPEG file with DNA nucleotides, which in turn is then integrated with a DNA sequencing, storage and synthesis simulator. 
 This repository contains the transcoding module which has been built by modifying the software used to encode DNA images - JPEG DNA - developed by the Mediacoding group in the I3S laboratory, in agreement with the standards described by the Jpeg DNA research group in - *DNA-based Media Storage - State-of-the-Art, Challenges, Use Cases and Requirements*. 
